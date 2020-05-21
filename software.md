@@ -132,3 +132,10 @@ library('brms')
 ```
 
 If no errors are raised, you can assume the installation was successful.
+
+
+## Installing Git
+
+We will use Git and GitHub to share materials. Although it is possible to use GitHub without using Git, for what we will be doing, it will be far easier to use Git. All we need is one or two commands. 
+
+Mac users usually don't have to do anything. Just go to your terminal and type `which git`, and you should get a oneliner essentially informing you that Git installed. It might look like `/usr/bin/git`. For Windows users, you should install *Git bash* from here https://gitforwindows.org/. Just download and install as you would with any Windows installer. When installing just accept all the defaults in the dialog box.
