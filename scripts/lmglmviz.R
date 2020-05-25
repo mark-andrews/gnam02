@@ -1,5 +1,8 @@
 library(tidyverse)
 library(ggridges)
+library(latex2exp)
+
+# Binomial models ---------------------------------------------------------
 
 m <- 140
 n <- 250
@@ -21,6 +24,27 @@ bin_df %>% ggplot(aes(x = x, y = log(y))) +
         axis.text.y = element_blank()) +
   xlab(TeX('$\\theta$')) +
   ylab(TeX('$\\log L(\\theta | n, m)$'))
+
+plot_bin_model <- function(m, n, a, b, xlim=c(0, 1)){
+  tibble(theta = seq(xlim[1], xlim[2], length.out = 1e4),
+         prior = theta^(a-1) * (1-theta)^(b-1),
+         likelihood = theta^m * (1-theta)^(n-m)
+  ) %>% mutate(prior = prior/sum(prior),
+               likelihood = likelihood/sum(likelihood),
+               posterior = prior * likelihood,
+               posterior = posterior/sum(posterior)
+  ) %>% pivot_longer(-theta, names_to = 'model', values_to = 'p') %>% 
+    ggplot(aes(x = theta, y = p, colour = model)) + 
+    geom_line() +
+    labs(x = TeX('$\\theta$'), y = '') +
+    theme(legend.position="bottom",
+          legend.title=element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank())
+}
+
+
+# Linear models -----------------------------------------------------------
 
 
 weight_df <- read_csv("data/weight.csv")
