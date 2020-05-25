@@ -17,6 +17,16 @@ bin_df %>% ggplot(aes(x = x, y = y)) +
   xlab(TeX('$\\theta$')) +
   ylab(TeX('$L(\\theta | n, m)$'))
 
+n <- 250
+thetastar = 0.64
+tibble(thetahat = seq(125, 195)/n,
+       p = dbinom(thetahat * n, size = n, prob = thetastar)
+) %>% 
+  ggplot(aes(x = thetahat, y = p)) + geom_col(fill = "#999999") + xlim(0.5, 0.78) +
+  labs(x = TeX('$\\hat{\\theta}$'),
+       y = TeX('$\\mathrm{P}(\\hat{\\theta} | \\theta, n)$')
+  ) + scale_fill_manual(values=c("#E69F00", "#999999", "#56B4E9"))
+
 
 bin_df %>% ggplot(aes(x = x, y = log(y))) + 
   geom_line() + 
