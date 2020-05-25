@@ -1,4 +1,4 @@
-For the attendees of the workshop held from May 4 to May 8, 2020, the video recordings are available on Vimeo.
+For the attendees of the workshop held from May 25 to May 29, 2020, the video recordings are available on Vimeo.
 These are password protected, and you will have been given this password in the workshop.
 
 # Day 1
