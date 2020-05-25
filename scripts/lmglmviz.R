@@ -1,6 +1,28 @@
 library(tidyverse)
 library(ggridges)
 
+m <- 140
+n <- 250
+bin_df <- tibble(x = seq(0, 1, length.out = 1e4),
+                 y = x^m * (1-x)^(n-m)
+)
+
+bin_df %>% ggplot(aes(x = x, y = y)) + 
+  geom_line() + 
+  theme(axis.ticks.y = element_blank(),
+        axis.text.y = element_blank()) +
+  xlab(TeX('$\\theta$')) +
+  ylab(TeX('$L(\\theta | n, m)$'))
+
+
+bin_df %>% ggplot(aes(x = x, y = log(y))) + 
+  geom_line() + 
+  theme(axis.ticks.y = element_blank(),
+        axis.text.y = element_blank()) +
+  xlab(TeX('$\\theta$')) +
+  ylab(TeX('$\\log L(\\theta | n, m)$'))
+
+
 weight_df <- read_csv("data/weight.csv")
 
 weight_male_df <- weight_df %>% 
