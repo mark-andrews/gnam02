@@ -1,4 +1,5 @@
 library(tidyverse)
+library(magrittr)
 library(modelr)
 
 # load data ---------------------------------------------------------------
@@ -10,16 +11,34 @@ eyefix_df_avg <- eyefix_df %>%
 
 eyefix_df_avg_targ <- filter(eyefix_df_avg, Object == 'Target')
 
+ggplot(eyefix_df_avg_targ,
+       aes(x = Time, y = mean_fix)) + geom_point()
+
+
+
 # Polynomial regression ----------------------------------------------------
 
 # degree 9
 M_9 <- lm(mean_fix ~ poly(Time, degree = 9), data = eyefix_df_avg_targ)
+eyefix_df_avg_targ %>% 
+  add_predictions(M_9) %>% 
+  ggplot(aes(x = Time, y = pred)) + geom_line() +
+  geom_point(aes(y = mean_fix), colour = 'red')
+
 
 # degree 5
 M_5 <- lm(mean_fix ~ poly(Time, degree = 5), data = eyefix_df_avg_targ)
+eyefix_df_avg_targ %>% 
+  add_predictions(M_5) %>% 
+  ggplot(aes(x = Time, y = pred)) + geom_line() +
+  geom_point(aes(y = mean_fix), colour = 'red')
+
 
 # compare two models
+summary(M_9)$r.sq
 summary(M_9)$adj.r.squared
+
+summary(M_5)$r.sq
 summary(M_5)$adj.r.squared
 anova(M_9, M_5)
 
@@ -77,7 +96,7 @@ map_dbl(M_overfits, AIC) %>%
   round(2)
 
 aic_c <- function(model){
-  K <- length(coef(model))
+  K <- length(coef(model)) + 1
   N <- nrow(model$model)
   AIC(model) + (2*K*(K+1))/(N-K-1)
 }

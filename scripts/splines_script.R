@@ -1,5 +1,6 @@
 library(tidyverse)
 library(splines)
+library(modelr)
 library(magrittr)
 
 # Looking at splines ---------------------------------------------------
@@ -67,7 +68,7 @@ b_spline(x, knots = knots, show_piece = T) %>%
 
 # a range of splines
 x <- seq(-2, 2, length.out = 1000)
-knots <- seq(-2, 2, by = 0.5)
+knots <- seq(-2, 2, by = 0.05)
 
 imap_dfr(seq(1,length(knots)-4),
          ~b_spline(x, knots = knots[.x:(.x+4)]) %>% 
@@ -113,6 +114,9 @@ rbspline_examples(102)
 knots <- seq(-500, 2500, by = 500)
 M_bs <- lm(mean_fix ~ bs(Time, knots = knots)*Object, 
            data=eyefix_df_avg)
+
+eyefix_df_avg %>% 
+  ggplot(aes(x = Time, y = mean_fix, colour = Object)) + geom_point()
 
 # plot the model
 eyefix_df_avg%>%
@@ -164,7 +168,9 @@ random_rbf_examples <- function(i, sigma){
 }
 
 centres <- seq(-2, 2, by = 0.5)
-random_rbf_examples(1010, 0.25)
+random_rbf_examples(10101, 2.25)
+random_rbf_examples(10101, 0.75)
+random_rbf_examples(10101, 0.1)
 
 
 # RBF regression ----------------------------------------------------------
@@ -208,6 +214,11 @@ M_gssvocab <- map(df_seq,
 
 aic_results <- map_dbl(M_gssvocab, aic_c) %>%
   enframe(name = 'df', value = 'aic')
+
+aic_results %>% 
+  mutate(df = as.numeric(df)) %>% 
+  ggplot(aes(x = df, y = aic)) + geom_point()
+
 
 aic_results %>%
   mutate(aic = aic - min(aic)) %>% 

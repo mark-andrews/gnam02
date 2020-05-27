@@ -36,6 +36,7 @@ M_1$rank
 M_2 <- gam(accel ~ s(times, k = 5), data = mcycle)
 M_2$rank
 
+plot(M_2, residuals = T)
 
 # Optimize the rank by AIC
 M_k_seq <- map(seq(3, 20) %>% set_names(.,.), 
@@ -91,6 +92,7 @@ M <- gam(mean_fix ~ Time, data = eyefix_df_avg_targ)
 
 # spline model
 M <- gam(mean_fix ~ s(Time), data = eyefix_df_avg_targ)
+plot(M, residuals = T)
 
 # spline model with 3 basis functions
 M <- gam(mean_fix ~ s(Time, k = 3), data = eyefix_df_avg_targ)
@@ -103,13 +105,17 @@ M <- gam(mean_fix ~ s(Time, sp = 1.1), data = eyefix_df_avg_targ)
 
 # Varying intercepts ??? ---------------------------------------------------
 
-M <- gam(mean_fix ~ s(Time) + Object, data = eyefix_df_avg)
+M_additive <- gam(mean_fix ~ s(Time) + Object, data = eyefix_df_avg)
 
 crossing(Time = seq(-1000, 3000, by = 100), 
          Object = c('Target', 'Competitor', 'Unrelated')) %>% 
   add_predictions(M) %>% 
   ggplot(aes(x = Time, y = pred, group = Object, colour = Object)) +
   geom_line()
+
+
+eyefix_df_avg %>% 
+  ggplot(aes(x = Time, y = mean_fix)) +geom_point()
 
 # Understanding interactions
 
@@ -123,7 +129,7 @@ M <- lm(Temp ~ Gas * Insul, data = insul_df)
 
 # The right way -----------------------------------------------------------
 eyefix_df_avg %<>% mutate(Object = factor(Object))
-M <- gam(mean_fix ~ Object + s(Time, by =Object), data = eyefix_df_avg)
+M_interaction <- gam(mean_fix ~ Object + s(Time, by =Object), data = eyefix_df_avg)
 # or
 M <- gam(mean_fix ~ s(Time, Object, bs = 'fs'), data = eyefix_df_avg)
 
@@ -134,7 +140,7 @@ eyefix_df_avg %>%
   geom_line(aes(y = pred))
 
 # Visualize it
-vis.gam(M, plot.type = 'persp', theta = -20)
+vis.gam(M, plot.type = 'persp', theta = -200)
 
 # Check fit -------------------------------------------------------------
 
