@@ -154,7 +154,7 @@ eyefix_df_avg %>%
 # Polynomial regression in practice
 
 * A ninth order polynomial of this data is obtained as follows.
-```{r}
+```{r, echo=T}
 M_eyefix <- lm(mean_fix ~ poly(Time, 9)*Object, 
                data=eyefix_df_avg)
 ```
