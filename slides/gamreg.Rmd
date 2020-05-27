@@ -1,0 +1,235 @@
+---
+title: "Generalized Additive Models"
+author: |
+  | Mark Andrews
+  | Psychology Department, Nottingham Trent University
+  | 
+  | \faEnvelopeO\  ```mark.andrews@ntu.ac.uk```
+fontsize: 10pt
+output:
+ beamer_presentation:
+  keep_tex: true
+  fonttheme: "serif"
+  includes:
+   in_header: preamble.tex
+---
+
+
+```{r, echo=F}
+knitr::opts_chunk$set(echo = F, prompt = F, warning = F, message = F, comment='#>')
+# Thanks to 
+# https://github.com/ramnathv/slidify/issues/189#issuecomment-15850008
+hook1 <- function(x){ gsub("```\n*```r*\n*", "", x) }
+hook2 <- function(x){ gsub("```\n+```\n", "", x) }
+knitr::knit_hooks$set(document = hook1)
+```
+
+```{r}
+library(tidyverse)
+library(magrittr)
+theme_set(theme_classic())
+```
+
+
+
+# Generalized additive models
+
+* The polynomial and spline regression models can be regarded as special cases of a more general type of regression model known as a *generalized additive model* (GAM).
+* Given $n$ observations of a set of $L$ predictor variabes $x_1, x_2 \ldots x_l \ldots x_L$ and outcome variable $y$,
+where $y_i, x_{1i}, x_{2i} \ldots x_{li} \ldots x_{Li}$ are the values of the outcome and predictors on observation $i$, then a GAM regression model of this data is:
+$$
+y_i \sim D(\mu_i, \psi),\quad \mu_i = f_1(x_{1i}) + f_2(x_{2i}) + \ldots + f_L(x_{Li}),\quad\text{for $i \in 1\ldots n$},
+$$
+where $D$ is some probability distribution with parameters $\psi$, and each predictor variable $f_l$ is a *smooth function* of the predictor variable's values.
+Usually each smooth function $f_l$ is a weighted sum of basis functions such as spline basis functions or other common types, some of which we describe below.
+
+# Generalized additive models "smooths"
+
+* The smooth functions $f_l$ might be defined as follows:
+$$
+f_l(x_{li}) = \beta_{l0} + \sum_{k=1}^K \beta_{lk} \phi_{lk}(x_{li}),
+$$
+where $\phi_{lk}$ is a basis function of $x_{li}$. 
+
+
+# More general GAMs
+
+* Instead of the outcome variable being described by a probability distribution $D$ where the value of $\mu_i$ is the sum of smooth functions of the values of predictor variable at observation $i$, just as in the case of generalized linear models, we could transform $\mu_i$ by a deterministic *link function* $g$ as follows:
+$$
+y_i \sim D(g(\mu_i), \psi),\quad \mu_i = f_1(x_{1i}) + f_2(x_{2i}) + \ldots + f_L(x_{Li}),\quad\text{for $i \in 1\ldots n$}.
+$$
+
+# More general still GAMs
+
+* More generally still, each smooth function may in fact be a multivariate function, i.e. a function of multiple predictor variables.
+* Thus, for example, a more general GAM than above might be as follows:
+$$
+\begin{aligned}
+y_i &\sim D(g(\mu_i)),\\
+\mu_i &= f_1(x_{1i}) + f_2(x_{2i}, x_{3i}, x_{4i}) + \ldots + f_L(x_{Li}),\quad\text{for $i \in 1\ldots n$},
+\end{aligned}
+$$
+where in this case, $f_2$ is a 3-dimensional smooth function.
+
+
+
+# Using `mgcv`
+
+* The R package `mgcv` is a powerful and versatile toolbox for using GAMs in R.
+* We will use a classic data-set often used to illustrate nonlinear regression
+```{r}
+mcycle <- MASS::mcycle
+```
+```{r mcycle, out.width='0.5\\textwidth', fig.cap='Head acceleration over time in a simulated motorcycle crash.', fig.align='center'}
+mcycle %>% 
+  ggplot(aes(x = times, y = accel)) +
+  geom_point()
+```
+
+# Using `mgcv`
+
+* The main function we will use from `mgcv` is `gam`.
+* By default, `gam` behaves just like `lm`.
+```{r,echo=TRUE}
+library(mgcv)
+
+M_0 <- gam(accel ~ times, data = mcycle)
+```
+
+* In other to use `gam` to do basis function regression, we must apply what `mgcv` calls *smooth terms*. 
+* There are many smooth terms to choose from in `mgcv` and there are many methods to specify them. 
+* Here, we will use the function simply named `s` to set up the basis functions. 
+* The default basis functions used with `s` are *thin plate splines*. 
+```{r, echo=TRUE}
+M_1 <- gam(accel ~ s(times), data = mcycle)
+```
+
+
+# `gam` with `s` fit
+
+* The plot of the fit of the above model can be accomplished using the base R `plot` function. 
+
+```{r mcycle_gam_1, out.width='0.75\\textwidth', fig.cap='A thin plate spline basis function regression model applied to the \\texttt{mycle} data set.', fig.align='center'}
+plot(M_1, residuals = T)
+```
+
+# `gam` with `s` summary
+
+```{r, echo=T}
+summary(M_1)$s.table
+```
+* The `edf` is the effective degrees of freedom of the smooth term. 
+* We can interpret it values in terms of polynomial terms. 
+* In other words, a `edf` close to one means the smooth terms is effectively a linear function, while a `edf` close to 2 or close to 3, and so on, are effectively quadratic, cubic, and so on, models.
+* The F statistic and p-value that accompanies this value tells us whether the function is significantly different to a horizontal line, which is a linear function with a zero slope. 
+* Even if the `edf` is greater than 1, the p-value may be not significant because there is too much uncertainty in the nature of the smooth function.
+
+# `gam` rank
+
+* The number of basis functions used by `s` is reported by the `rank` attribute of the model.
+* In our model, we see that it is `r M_1$rank`.
+```{r, echo=T}
+M_1$rank
+```
+* In general, `mgcv` will use a number of different methods and constraints, which differ depending on the details of the model, in order to optimize the value of `k`. 
+* We can always, however, explicitly control the number of basis functions used by setting the value of `k` in the `s` function.
+```{r, echo=TRUE}
+M_2 <- gam(accel ~ s(times, k = 5), data = mcycle)
+M_2$rank
+```
+
+# `gam` rank optimization
+
+* How models with different numbers of bases differ in terms of AIC can be easily determined using the `AIC` function.
+* To illustrate this, we will fit the same model with a range of value of `k` from 3 to 30.
+```{r, echo=T}
+M_k_seq <- map(seq(3, 20) %>% set_names(.,.), 
+               ~gam(accel ~ s(times, k = .), data = mcycle))
+model_aic <- map_dbl(M_k_seq, AIC)
+which.min(model_aic)
+```
+
+# `gam.check` and `k.check`
+
+* `gam.check` and `k.check` can be used for diagnosis and checking the number of basis functions
+
+```{r, echo=T}
+k.check(M_2)
+M_3 <- gam(accel ~ s(times, k = 10), data = mcycle)
+k.check(M_3)
+```
+
+
+
+# Smoothing penalty
+
+* In addition to explicitly setting the number of basis functions, we can also explicitly set the *smoothing penalty* with the `sp` parameter used inside the `s` function.
+* In general, the higher the smoothing penalty, the *less* flexibility in the nonlinear function. 
+* For example, very high values of the smoothing penalty effectively force the model to be a liner model.
+* On the other hand, low values of the smoothing penalty may be overly flexible and overfit the data, as we saw above.
+
+# Smoothing penalty
+
+```{r sp_plots, out.width='\\textwidth', fig.cap='Plots of the fits of Gam models to the \\texttt{mcycle} data with different values of \\texttt{sp} from, left to right and upper to lower, $10^{-1}$, $1$, $10$, $100$.', fig.align='center'}
+par(mfrow=c(2, 2))
+plot(gam(accel ~ s(times, sp = 1e-1), data = mcycle), residuals = T)
+plot(gam(accel ~ s(times, sp = 1), data = mcycle), residuals = T)
+plot(gam(accel ~ s(times, sp = 1e1), data = mcycle), residuals = T)
+plot(gam(accel ~ s(times, sp = 1e2), data = mcycle), residuals = T)
+dev.off()
+```
+
+# Optimizing smoothing penalty
+
+* As with `k`, if `sp` is not explicitly set, `mgcv` uses a different methods, including cross-validation, to optimize the value of `sp` for any given model. 
+
+# `by` factor smooth for interactions
+
+* To model interactions with a categorical predictor variable, we must use *by factor* smooths.
+* This effectively allows us to fit a separate smooth function for each value of the interacting categorical variable.
+
+# Multivariate basis functions for spatial etc models
+```{r, echo=T}
+meuse <- read_csv('../data/meuse.csv')
+
+M <- gam(copper ~ s(x, y), data = meuse)
+```
+
+```{r}
+plot(M)
+```
+
+# Multivariate basis functions for continuous-continuous interactions
+
+* We can also use these types of smooths to deal with continuous-continuous interactions
+
+```{r}
+x <- y <- seq(-1, 1, length= 20)
+z <- outer(x, y, function(x, y) x*y)
+
+persp(x, y, z, theta = 120)
+```
+
+# Multilevel GAM
+
+* Recall that an example of a simple multilevel normal linear model can be defined as follows:
+\begin{align*}
+y_{ji} &\sim N(\mu_{ji}, \sigma^2),\quad\mu_{ji} = \alpha_j + \beta_j x_{ji}, \quad\text{for $i \in 1\ldots n$}\\
+\text{with}\quad \alpha_j &\sim N(a, \tau^2_{\alpha}),\quad\beta_j \sim N(b, \tau^2_{\beta})\quad\text{for $j \in 1\ldots J$.}
+\end{align*}
+* This model can be rewritten as 
+\begin{align*}
+y_{ji} &\sim N(\mu_{ji}, \sigma^2),\\
+       \mu_{ji} &= a + \nu_j + b x_{ji} + \xi_j x_{ji}, \quad\text{for $i \in 1\ldots n, \quad j \in 1\ldots J$,}\\
+\text{with}\quad \nu_j &\sim N(0, \tau^2_{\alpha}),\quad\xi_j \sim N(0, \tau^2_{\beta}),\quad\text{for $j \in 1\ldots J$.}
+\end{align*}
+
+# Multilvel GAM
+
+* A GAM version of this model might be as follows.
+\begin{align*}
+y_{ji} &\sim N(\mu_{ji}, \sigma^2),\\
+       \mu_{ji} &= a + \nu_j + f_1(x_{ji}) + f_{2j}(x_{ji}), \quad\text{for $i \in 1\ldots n, \quad j \in 1\ldots J$,}\\
+\text{with}\quad \nu_j &\sim N(0, \tau^2_{\alpha}),\quad f_{2j} \sim F(\Omega),\quad\text{for $j \in 1\ldots J$.}
+\end{align*}
+Here, $f_{21}, f_{22}\ldots f_{2j} \ldots f_{2J}$ are *random smooth functions*, sampled from some function space $F(\Omega)$, where $\Omega$ specifies the parameters of that function space.

@@ -1,0 +1,221 @@
+---
+title: "Polynomial regression"
+author: |
+  | Mark Andrews
+  | Psychology Department, Nottingham Trent University
+  | 
+  | \faEnvelopeO\  ```mark.andrews@ntu.ac.uk```
+fontsize: 10pt
+output:
+ beamer_presentation:
+  keep_tex: true
+  fonttheme: "serif"
+  includes:
+   in_header: preamble.tex
+---
+
+```{r, echo=F}
+knitr::opts_chunk$set(echo = F, prompt = F, warning = F, message = F, comment='#>')
+# Thanks to 
+# https://github.com/ramnathv/slidify/issues/189#issuecomment-15850008
+hook1 <- function(x){ gsub("```\n*```r*\n*", "", x) }
+hook2 <- function(x){ gsub("```\n+```\n", "", x) }
+knitr::knit_hooks$set(document = hook1)
+```
+
+```{r}
+library(tidyverse)
+library(magrittr)
+theme_set(theme_classic())
+```
+
+# Normal polynomial regression
+
+* In normal polynomial regression, of degree K, with one predictor $x$, we have
+\begin{align*}
+y_i &\sim N(\mu_i, \sigma^2),\quad\text{for $i \in 1 \ldots n$}\\
+\mu_i &= \beta_0 + \sum_{k=1}^K \beta_k x_i^k.
+\end{align*}
+
+* In other words, we assume that are data are generated as follows:
+$$
+y_i \sim N(f(x_i), \sigma^2),\quad \text{for $i = 1, 2 \ldots n$},
+$$
+where $f$ is a nonlinear function that we will approximate with a polynomial of degree $K$, i.e. each $x_i$, we assume that $f(x_i)$ can be approximated by $\sum_{k=0}^K \beta_k x_i^k$ for some unknown values of $\beta_0, \beta_1 \ldots \beta_K$.
+
+
+
+```{r}
+get_polynomial_design_matrix <- function(K=3, xmin=-10, xmax=10, N=100, rescale = T){
+  
+  # Produce a matrix of x, and x raised to the power of 0 to K
+  # If `rescale, the values of the powers of x are scaled to be between -2 and 2
+  
+  rescale_f <- function(x, new_min=-1, new_max=1){
+    
+    new_range <- new_max - new_min
+    original_range <- max(x) - min(x)
+    
+    x <- x * new_range/original_range
+    x - (min(x) - new_min)
+  }
+  
+  x <- seq(xmin, xmax, length.out = N)
+  Df <- map(x, ~.^seq(0, K)) %>%
+    do.call(rbind, .) %>% 
+    set_colnames(paste0('degree_', seq(0, K))) %>% 
+    as_tibble() %>% 
+    mutate(x = degree_1) %>% 
+    select(x, everything())
+  
+  if (rescale){
+    Df %>% mutate_at(vars(matches('^degree_[^0]$')), 
+                     ~rescale_f(., new_min = -2, new_max = 2))
+  } else {
+    Df
+  }
+}
+
+rpolynomial <- function(K = 5){
+  beta <- rnorm(K + 1)
+  beta <- beta/sum(beta)
+  get_polynomial_design_matrix(K = K) %>%
+    mutate(y = select(., starts_with('degree')) %>% 
+             apply(1, function(x) sum(x*beta))
+    ) %>% select(x, y) 
+}
+
+rpolynomial_examples <- function(i){
+  set.seed(i)
+  Df <- imap(rerun(5, rpolynomial(K = 5)), 
+             ~mutate(., example = .y)) %>% 
+    bind_rows() %>% 
+    mutate_at(vars(example), as.character)
+  
+  p <- Df %>% ggplot(mapping = aes(x = x, y = y, colour = example)) + 
+    geom_line() +
+    theme(legend.position="none")
+  
+  p
+}
+
+```
+
+# Polynomials of degree $k \in 0, 1, \ldots 5$
+
+```{r, polynomials_plot, out.width='0.85\\textwidth',fig.align='center', fig.cap='Plots of polynomial functions. For each degree $k \\in 0, 1, \\ldots 5$, we plot $y = x^k$.'}
+
+get_polynomial_design_matrix(K=5) %>% 
+  gather(degree, y, starts_with('degree')) %>% 
+  ggplot(mapping = aes(x = x, y = y, colour = degree)) + geom_line()
+
+```
+
+# Weighted sums of polynomials
+
+```{r, rpolynomial_plot, out.width='0.85\\textwidth',fig.align='center', fig.cap='Examples of random polynomial functions. We have five random polynomials of degree $K=5$. In other words, each function shown in each subplot is defined as $y = \\sum_{k=0}^5 \\beta_k x^k$ for some random vector $\\beta_0, \\beta_1 \\ldots \\beta_5$.'}
+
+rpolynomial_examples <- function(i){
+  set.seed(i)
+  Df <- imap(rerun(5, rpolynomial(K = 5)), 
+             ~mutate(., example = .y)) %>% 
+    bind_rows() %>% 
+    mutate_at(vars(example), as.character)
+  
+  p <- Df %>% ggplot(mapping = aes(x = x, y = y, colour = example)) + 
+    geom_line() +
+    theme(legend.position="none")
+  
+  p
+}
+
+rpolynomial_examples(110)
+```
+
+
+# Polynomial regression in practice
+
+```{r, echo=F}
+eyefix_df <- read_csv('../data/funct_theme_pts.csv')
+eyefix_df_avg <- eyefix_df %>% 
+  group_by(Time, Object) %>% 
+  summarize(mean_fix = mean(meanFix)) %>% 
+  ungroup()
+
+eyefix_df_avg_targ <- filter(eyefix_df_avg, Object == 'Target')
+```
+```{r, eyefix_fig_1, out.width='0.85\\textwidth',fig.align='center', fig.cap='Average proportion of eye fixations at different types of objects (named \\emph{Competitor}, \\emph{Target}, \\emph{Unrelated}) in each time window in multisecond experimental trial.'}
+eyefix_df_avg %>% 
+  ggplot(mapping = aes(x = Time, y = mean_fix, colour = Object)) +
+  geom_point() 
+```
+
+
+# Polynomial regression in practice
+
+* A ninth order polynomial of this data is obtained as follows.
+```{r}
+M_eyefix <- lm(mean_fix ~ poly(Time, 9)*Object, 
+               data=eyefix_df_avg)
+```
+
+* This can be compared to competitor model.
+```{r, echo=T}
+M_eyefix_null <- lm(mean_fix ~ Object + poly(Time, 9), data=eyefix_df_avg)
+anova(M_eyefix_null, M_eyefix)
+```
+* This shows that the polynomial functions for the categories do not differ simply in terms of their intercept terms.
+* However, beyond that, it is not simple matter to say where and how the three different polynomial functions differ from one another.
+
+
+# Overfitting in polynomial regression
+
+* As the degree of the polynomial model increases, so too can its fit to the data.
+* However, this fit to the data may be essentially an *overfit*. 
+* There is no precise general definition of overfitting, but in some cases, it is clearly the case that the overfitted model is fitting the noise rather than the true underlying function, which we know in this case is just a linear model.
+* We can see how the functions in higher order polynomials are bending to fit individual data points.
+* Overfitted models do not generalise well to new data.
+* We may measure this with cross validation, and related methods.
+
+# Cross validation
+
+* For leave one out cross-validation, the procedure is as follows, with the procedure for any $K$-fold cross-validation being similarly defined.
+* Assuming our data is $\data = y_1, y_2 \ldots y_n$, we divide the data into $n$ sets:
+$$
+(y_1, y_{\neg 1}), (y_2, y_{\neg 2}), \ldots (y_i, y_{\neg i}) \ldots (y_n, y_{\neg n}),
+$$
+where $y_i$ is data point $i$ and $y_{\neg i}$ is all the remaining data except for data point $i$.
+* Then, for each $i$, we fit the model using $y_{\neg i}$ and test how well the fitted model can predict $y_i$.
+* In classical inference based models, for each $i$, we calculate $\hat{\theta}^{\neg i}$, which is the maximum likelihood or other estimator of the parameter vector $\theta$ based on $y_{\neg i}$.
+* We then calculate 
+$$
+\textrm{elpd} = \sum_{i=1}^n \log \Prob{y_i\given \hat{\theta}^{\neg i}}
+$$
+as the overall measure of the model's out-of-sample predictive performance, which we refer to as *expected log predictive density*.
+
+# AIC
+
+* Akaike Information Criterion (AIC) is an approximation to leave one out cross validation.
+* It is defined as follows.
+$$
+\begin{aligned}
+\textrm{AIC} &= 2k - 2\log\Prob{\data\given \hat{\theta}},\\
+             &= 2k + \textrm{Deviance},
+\end{aligned}
+$$
+* A small sample correction for AIC is 
+$$
+\textrm{AIC}_c = \textsc{aic} + \frac{2 k (k+1)}{n - k -1}.
+$$
+* This correction is generally advised when the ratio of sample size $n$ to number of parameters $k$ is relatively low, as it would be in the case.
+
+
+# Overfitting in polynomial regression
+
+* Overfitting is a general problem in statistical modelling.
+* However, polynomial regression is especially prone to overfitting. 
+* This is because higher order polynomials are too unconstrained. 
+* The higher the order of the polynomial, the more it can twist and bend to fit the data.
+* This is not always avoided by simply sticking to lower order polynomials because lower order polynomials *underfit* the data, having insufficient flexibility to fit the function.
+* Thus a common problem with polynomial regression is that the lower order polynomials are not flexible enough, and the higher order ones are too unconstrained.
+* Moreover, polynomial regression is also prone to a pathology related *Runge's phenomenon*, which is where there is excessive oscillation in the polynomial function particularly at its edges.
