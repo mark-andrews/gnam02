@@ -201,14 +201,76 @@ plot(M)
 
 # Multivariate basis functions for continuous-continuous interactions
 
-* We can also use these types of smooths to deal with continuous-continuous interactions
+* Gams can handle continuous-continous interactions not possible otherwise.
+* Let's say we have two predictors $x_1$, which is continuous, and $x_2$ which is binary, then a varying intercept linear model is
+$$
+\mu_i = \beta_0 + \beta_1 x_1 + \beta_2 x_2.
+$$
+* When $x_2 = 0$, we have
+$$
+\begin{aligned}
+\mu_i &= \beta_0 + \beta_1 x_1 + \underbrace{ \beta_2 x_2}_{=0},\\
+      &= \beta_0 + \beta_1 x_1 .
+\end{aligned}
+$$
+* When $x_2 = 1$, we have
+$$
+\begin{aligned}
+\mu_i &= \beta_0 + \beta_1 x_1 + \underbrace{ \beta_2 x_2}_{=\beta_2},\\
+      &= (\beta_0 + \beta_2) + \beta_1 x_1 .
+\end{aligned}
+$$
+* In R, this `y ~ x_1 + x_2`. 
 
+
+# Multivariate basis functions for continuous-continuous interactions
+
+* A varying slope and varying intercept linear model is 
+$$
+\mu_i = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 x_1 x_2.
+$$
+* When $x_2 = 0$, we have
+$$
+\begin{aligned}
+\mu_i &= \beta_0 + \beta_1 x_1 + \underbrace{ \beta_2 x_2}_{=0} + \underbrace{\beta_3 x_1 x_2}_{=0},\\
+      &= \beta_0 + \beta_1 x_1 .
+\end{aligned}
+$$
+* When $x_2 = 1$, we have
+$$
+\begin{aligned}
+\mu_i &= \beta_0 + \beta_1 x_1 + \underbrace{ \beta_2 x_2}_{=\beta_2} + \underbrace{\beta_3 x_1 x_2}_{=\beta_3 x_1},\\
+      &= (\beta_0 + \beta_2) + (\beta_1 + \beta_3) x_1.
+\end{aligned}
+$$
+* In R, this `y \sim x_1 * x_2`. 
+
+
+# Multivariate basis functions for continuous-continuous interactions
+
+* What if $x_1$ and $x_2$ are both continous?
+* What does `y ~ x_1 * x_2` do?
+* It is still
+$$
+\mu_i = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 x_1 x_2,
+$$
+which means that $x_1$ and $x_2$ are being multiplied.
+This means, our function from $x_1$ and $x_2$ to $\mu$ is essentially
 ```{r}
 x <- y <- seq(-1, 1, length= 20)
-z <- outer(x, y, function(x, y) x*y)
+z <- outer(x, y, function(x, y) {x*y})
 
 persp(x, y, z, theta = 120)
 ```
+
+# Multivariate basis functions for continuous-continuous interactions
+
+* We can instead model this surface as
+```{r, echo=T, eval=F}
+gam(y ~ te(x_1, x_2))
+```
+etc.
+
 
 # Multilevel GAM
 

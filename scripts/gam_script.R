@@ -173,7 +173,7 @@ golf_df %>%
 
 # With a gam
 
-Mg <- gam(cbind(success, failure) ~ s(distance, sp = 10),
+Mg <- gam(cbind(success, failure) ~ s(distance, ),
           family = binomial,
           data = golf_df,
           method = "REML")
@@ -197,15 +197,15 @@ affairs_df %>%
             pcheat = ncheat/n) %>% 
   ggplot(aes(x = yearsmarried, y = pcheat, colour = gender)) + geom_point() + stat_smooth(se=F, method='loess')
 
-M <- glm(cheater ~ gender*yearsmarried,
+Mglm <- glm(cheater ~ gender*yearsmarried,
          data = affairs_df,
          family = binomial)
 
 affairs_df %>% 
-  add_predictions(M, type='response') %>% 
+  add_predictions(Mglm, type='response') %>% 
   ggplot(aes(x = yearsmarried, y = pred, colour=gender)) + geom_line()
 
-M <- gam(cheater ~ gender + s(yearsmarried, by = gender, k = 8, sp = 1),
+Mgam <- gam(cheater ~ gender + s(yearsmarried, by = gender, k = 8),
          data = affairs_df,
          family = binomial,
          method = 'REML')
