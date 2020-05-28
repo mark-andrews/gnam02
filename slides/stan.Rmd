@@ -1,0 +1,151 @@
+---
+title: "Using Stan"
+author: |
+  | Mark Andrews
+  | Psychology Department, Nottingham Trent University
+  | 
+  | \faEnvelopeO\  ```mark.andrews@ntu.ac.uk```
+fontsize: 10pt
+output:
+ beamer_presentation:
+  keep_tex: true
+  fonttheme: "serif"
+  includes:
+   in_header: preamble.tex
+---
+
+
+```{r, echo=F}
+knitr::opts_chunk$set(echo = F, prompt = F, warning = F, message = F, comment='#>')
+# Thanks to 
+# https://github.com/ramnathv/slidify/issues/189#issuecomment-15850008
+hook1 <- function(x){ gsub("```\n*```r*\n*", "", x) }
+hook2 <- function(x){ gsub("```\n+```\n", "", x) }
+knitr::knit_hooks$set(document = hook1)
+
+
+```
+```{r}
+library(tidyverse)
+
+```
+
+# Normal models
+
+```{r, math_sat, fig.cap="Histogram of mathematical SAT scores in a sample of student in a US university.", fig.align="center", out.width="1.0\\textwidth"}
+math_df <- read_csv('../data/MathPlacement.csv')
+math_df %>%
+  ggplot(aes(x = SATM)) + 
+  geom_histogram(binwidth = 2, col='white')
+```
+
+# Normal models
+
+* Despite is lack of symmetry, a simple and almost default model of this data would be as follows.
+$$
+y_i \sim N(\mu, \sigma^2),\quad\text{for $i \in 1\ldots n$},
+$$
+where $y_i$ is the maths SAT score of student $i$ and where there are $n$ students in total.
+* Obviously, we have two unknowns, $\mu$ and $\sigma$, and so in a Bayesian model, we first put priors over these two variables.
+* Common choices for a prior on the $\mu$ parameter of the normal distribution is another normal distribution.
+* For the prior over $\sigma$, Gelman et al generally recommends heavy tailed distributions over the positive real values such as a half-Cauchy or half-t distribution.
+
+# Normal models
+
+* Following these suggestions, our Bayesian model becomes, for example:
+$$
+\begin{aligned}
+y_i &\sim N(\mu, \sigma^2),\quad\text{for $i \in 1\ldots n$},\\
+\mu &\sim N(\nu, \tau^2),\quad \sigma \sim \mathrm{Student}_{+}(\kappa, \phi, \omega),
+\end{aligned}
+$$
+where $\mathrm{Student}_{+}$ is the upper half of the (nonstandard) Student t-distribution centered at $\phi$, with scale parameter $\omega$, and with degrees of freedom $\kappa$.
+For this choice of prior, we therefore have in total 5 hyper-parameters $\nu$, $\tau$, $\phi$, $\omega$ and $\kappa$.
+
+# Using Stan
+
+* A Stan program implementing this model is in the file `normal.stan`.
+* We can run this program with `rstan::stan` as follows.
+```{r, echo=T, eval=F}
+y <- read_csv('data/MathPlacement.csv') %>%
+  select(SATM) %>%
+  na.omit() %>%
+  pull(SATM)
+
+N <- length(y)
+
+math_data <- list(y = y, 
+                  N = N, 
+                  nu = 50, 
+                  tau = 25, phi = 0, omega = 10, kappa = 5)
+M_math <- stan('normal.stan', data = math_data)
+```
+
+# Stan Summary 
+
+* We can view the summary of the results with `stan_summary`.
+```{r, echo=T, eval = F}
+summary(M_dice, 
+        pars = pars = c('mu', 'sigma'), 
+        probs = c(0.025, 0.975))$summary
+```
+
+
+# Regression models
+
+* Normal linear regression models are extensions of the normal distribution based model just described.
+
+```{r, mathplacement, echo=F, fig.cap='A scatterplot of scores on a mathematics placement exam against maths SAT scores.', fig.align='center', out.width="0.67\\textwidth"}
+math_df %>% 
+  select(SATM, PlcmtScore) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = SATM, y = PlcmtScore)) + geom_point()
+```
+
+
+
+# Regression models
+
+* Denoting the `PlcmtScore` by $y$ and `SATM` by $x$, the model can be written as follows.
+$$
+\text{for $i \in 1\ldots n$}\quad y_i \sim N(\mu_i, \sigma^2),\quad\mu_i = \beta_0 + \beta_1 x_i.
+$$
+* There are now three parameters in the model: $\beta_0$, $\beta_1$, $\sigma$.
+* We will place normal priors on $\beta_0$ and $\beta_1$, and half t-distribution on $\sigma$.
+* As such the full Bayesian model is as follows.
+$$
+\begin{aligned}
+y_i &\sim N(\mu_i, \sigma^2),\quad\mu_i = \beta_0 + \beta_1 x_i,\\
+\beta_0 &\sim N(\nu_0, \tau^2_0),\quad
+\beta_1 \sim N(\nu_1, \tau^2_1),\quad
+\sigma \sim \mathrm{Student}_{+}(\kappa, \phi, \omega)
+\end{aligned}
+$$
+
+# Regression models
+
+* The Stan code for this model is in `normallinear.stan`.
+
+* For this example, we will choose the hyperparameters to lead to effectively uninformative priors on $\beta_0$ and $\beta_1$.
+
+* Specifically, the normal distributions will be centered on zero, i.e. $\nu_0 = \nu_1 = 0$, and will be sufficiently wide, i.e., $\tau_0 = \tau_1 = 50$, so as to be effectively uniform over all practically possible values for $\beta_0$ and $\beta_1$.
+* For the prior on $\sigma$, as above, we will use the upper half of Student's t-distribution centered at 0 and with a relatively low degrees of freedom and with a scale $\omega$ equal to the MAD of the outcome variable $y$.
+
+# Regression models
+
+* If we place the `x` and `y` data vectors and the values of the hyperparameters in the list `math_data_2`, we can call the Stan program as using `rstan::stan` as we did above.
+```{r, echo=T, eval=F}
+x <- pull(math_df_2, SATM)
+y <- pull(math_df_2, PlcmtScore)
+  
+math_data_2 <- list(
+  x = x,
+  y = y,
+  N = length(x),
+  tau = 50, omega = mad(y), kappa = 3
+)
+
+M_math_2 <- stan('normlinear.stan', data = math_data_2)
+
+stan_summary(M_math_2, pars = c('beta_0', 'beta_1', 'sigma'))
+```

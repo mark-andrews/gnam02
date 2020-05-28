@@ -1,0 +1,121 @@
+---
+title: "Multilevel linear Models"
+author: |
+  | Mark Andrews
+  | Psychology Department, Nottingham Trent University
+  | 
+  | \faEnvelopeO\  ```mark.andrews@ntu.ac.uk```
+fontsize: 10pt
+output:
+ beamer_presentation:
+  keep_tex: true
+  fonttheme: "serif"
+  includes:
+   in_header: preamble.tex
+---
+
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, prompt = TRUE, warning = FALSE, message = FALSE, comment=NA)
+library(lme4)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(nlme)
+library(brms)
+
+schools <- c('1308', '1946', '7276', '9198', '2917', '9104', '4042', '7635', '8188', '6464', '5838', '9158', '5815', '6808', '6578', '4350')
+Df <- MathAchieve %>% 
+  select(school = School,
+         minority = Minority,
+         sex = Sex,
+         ses = SES,
+         mathach = MathAch) %>% 
+  filter(school %in% schools) %>% 
+  mutate(school = as.character(school))
+
+set.seed(10101)
+mu <- rnorm(16, mean=500, sd=50)
+f <- function(mu) rnorm(250, mean=mu, sd=25)
+fake_rt <- do.call(cbind, lapply(mu, f)) %>% 
+  as.data.frame() %>% 
+  as_tibble() %>% 
+  rename_all(funs(str_replace(., "V", "subject"))) %>% 
+  gather(subject, reaction_time, subject1:subject16) 
+
+#write_csv(fake_rt, '../data/fake_rt.csv')
+
+```
+
+# Multilevel data: Example 1
+
+Reaction time as a function of sleep deprivation.
+```{r}
+ggplot(sleepstudy,
+       aes(x=Days, y=Reaction, col=Subject)
+) + geom_point() +
+  stat_smooth(method='lm', se=F) +
+  facet_wrap(~Subject) +
+  guides(col=F)
+```
+
+# Multilevel data: Example 2
+
+Mathematical achievement as function of socio-economic status.
+```{r}
+ggplot(Df,
+       aes(x=ses, y=mathach, col=school)
+) + geom_point() +
+  stat_smooth(method='lm', se=F) +
+  facet_wrap(~school) +
+  guides(col=F)
+```
+
+
+
+# Example: Reaction time and math achievement
+
+-   In this problem, we have $J$ subject. For subject $j$, we have
+    $n_j$ data points.
+
+-   In observation $i$ from subject $j$, their number of days without sleep is $x_{ji}$ and the reaction time is $y_{ji}$.
+
+-   A multilevel model for this data is $$\begin{aligned}
+    y_{ji} &\sim N(\alpha_{j} + \beta_j x_{ji},\sigma^2),\\
+    \alpha_j &\sim N(a,\tau_a^2),\\
+    \beta_j &\sim N(b,\tau_b^2).\end{aligned}$$
+
+# Example: Reaction time and math achievement
+
+-   The model $$\begin{aligned}
+    y_{ji} &\sim N(\alpha_{j} + \beta_j x_{ji},\sigma^2),\\
+    \alpha_j &\sim N(a,\tau_a^2),\\
+    \beta_j &\sim N(b,\tau_b^2),\end{aligned}$$ can be re-written
+    $$y_{ji} = \underbrace{(a + \eta_j)}_{\text{ $\alpha_j$}} + \underbrace{(b + \zeta_j)}_{\text{ $\beta_j$}} x_{ji} + \epsilon_{ji},$$
+    or
+    $$y_{ji} = \underbrace{a + bx_{ji}}_{\text{Fixed effect}} + \underbrace{\eta_j + \zeta_j x_{ji}}_{\text{Random effect}} + \epsilon_{ji},$$
+    where
+    $$\eta_j \sim N(0,\tau_a^2),~ \zeta_j \sim N(0,\tau_b^2),~ \epsilon_j \sim N(0,\sigma^2).$$
+
+    
+
+
+
+# Example:  Reaction time and math achievement
+
+-   In the model just described, $a$ and $b$ are the general regression
+    coefficients.
+
+-   The variance $\tau_a^2$ tells us how much variation in the intercept
+    term there is across schools. The variance $\tau_b^2$ tells us how
+    much variation in the slope term there is across schools.
+
+-   For example, 95% and 99% of the intercepts for individual schools
+    will be in the ranges
+    $$a \pm 1.96 \times \tau_a,\quad  a \pm 2.56 \times \tau_a,$$
+    respectively. Likewise, 95% and 99% of the slope terms for schools
+    will be in the ranges
+    $$b \pm 1.96 \times \tau_b,\quad b  \pm 2.56 \times \tau_b.$$
+
