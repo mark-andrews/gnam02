@@ -1,4 +1,6 @@
-source("scripts/common.R")
+library(tidyverse)
+library(rstan)
+
 math_df <- read_csv('data/MathPlacement.csv')
 
 math_df_2 <- math_df %>% 
@@ -15,6 +17,6 @@ math_data_2 <- list(
   tau = 50, omega = mad(y), kappa = 3
 )
 
-M_math_2 <- stan('normlinear.stan', data = math_data_2)
+M_math_2 <- stan('stan/normlinear.stan', data = math_data_2)
 
-saveRDS(file = 'M_math_2.Rds', object = M_math_2)
+summary(M_math_2, pars = c('beta_0'), probs = c(0.05, 0.95))$summary
