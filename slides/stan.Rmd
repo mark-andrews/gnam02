@@ -81,14 +81,6 @@ math_data <- list(y = y,
 M_math <- stan('normal.stan', data = math_data)
 ```
 
-# Stan Summary 
-
-* We can view the summary of the results with `stan_summary`.
-```{r, echo=T, eval = F}
-summary(M_dice, 
-        pars = pars = c('mu', 'sigma'), 
-        probs = c(0.025, 0.975))$summary
-```
 
 
 # Regression models
@@ -147,5 +139,4 @@ math_data_2 <- list(
 
 M_math_2 <- stan('normlinear.stan', data = math_data_2)
 
-stan_summary(M_math_2, pars = c('beta_0', 'beta_1', 'sigma'))
 ```
