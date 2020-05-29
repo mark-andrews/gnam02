@@ -117,3 +117,7 @@ Having established a solid regresion modelling foundation, on the second day we 
   that we did not cover. We can also deal with specific Python related problems
   that attendees have, and these can be in one-to-one meetings or with the
   entire group.
+
+# Evaluation of the course
+
+This is optional, but if you would like to comment on the course, that would be greatly appreciate. This [anonymous survey](https://tinyurl.com/gnam02feedback) asks just two simple questions, so could take you just a matter of seconds.
