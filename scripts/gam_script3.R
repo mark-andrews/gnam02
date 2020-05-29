@@ -51,3 +51,24 @@ data_df %>%
   add_predictions(M) %>% 
   ggplot(aes(x = x, y = pred, colour = v)) +
     geom_point() + facet_wrap(~v)
+
+# The same as above but fixed ---------------------------------------------
+
+data_df %>% 
+  add_predictions(lm(y ~ bs(x, degree = 5), data = data_df)) %>% 
+  ggplot(aes(x = x, y = pred)) + geom_line()
+
+df_q <- bind_cols(data_df, ns(data_df$x, df=5) %>% as_tibble())
+
+# population average curve (approximately calculated using `lm` not `lmer`)
+data_df %>% 
+  add_predictions(lm(y ~ ns(x, df = 5), data = data_df)) %>% 
+  ggplot(aes(x = x, y = pred)) + geom_line()
+
+# random variations around population average curve
+# ignore warnings
+df_q %>% 
+  add_predictions(lmer(y ~ `1` + `2` + `3` + `4` + `5` + 
+                         (`1` + `2` + `3` + `4` + `5`|v), data = df_q)) %>% 
+  ggplot(aes(x = x, y = pred, colour = v)) + geom_line() + facet_wrap(~v)
+
