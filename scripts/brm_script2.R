@@ -35,4 +35,19 @@ rent_df %>%
 # A model -----------------------------------------------------------------
 
 Mrent <- brm(rentsqm ~ t2(area, yearc) + (1|district),
-             data = rent99)
+             data = rent_df,
+             cores = 4)
+
+summary(Mrent)
+
+conditional_effects(Mrent, surface = T)
+
+# Vary sigma as well
+bform <- bf(rentsqm ~ t2(area, yearc) + (1|district),
+            sigma ~ t2(area, yearc) + (1|district))
+
+Mrent2 <- brm(bform,
+             data = rent_df,
+             cores = 4)
+
+conditional_smooths(Mrent2)
