@@ -203,12 +203,12 @@ M_2 <- brm(like ~ sex + PrivPub + (1|school) + (1|Class),
 
 
 # Ordinal logistic 
-# M_3 <- brm(like ~ sex + PrivPub + (1|school) + (1|Class), 
-#            cores = 2,               
-#            prior = set_prior('normal(0, 100)'), # flat prior on coefs
-#            save_all_pars = T,
-#            family=cumulative("logit"), 
-#            data = Df)
+M_3 <- brm(like ~ sex + PrivPub + (1|school) + (1|Class), 
+           cores = 2,               
+           prior = set_prior('normal(0, 100)'), # flat prior on coefs
+           save_all_pars = T,
+           family=cumulative("logit"), 
+           data = Df)
 
 
 # consider using control = list(adapt_delta = 0.95)
