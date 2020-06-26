@@ -75,11 +75,21 @@ prior_summary(M_bayes)
 
 
 # ------ Model comparison ----------
+M_bayes <- brm(y ~ x_1 + x_2, 
+               data = Df,
+               cores = 1, # I have a dual-core
+               chains = 4, # 4 chains is typical
+               iter = 2500,
+               warmup = 1000, # these are initilization etc iterations
+               prior = set_prior('normal(0, 100)'), # flat prior on coefs
+               seed = 101011, # for reproducibility
+               save_all_pars = T # needed for bayes_factor
+)
 
 # Set up a null model
 M_bayes_null <- brm(y ~ x_1, 
                     data=Df,
-                    cores = 2, # I have a dual-core
+                    cores = 1, # I have a dual-core
                     chains = 4, # 4 chains is typical
                     iter = 2500,
                     warmup = 1000, # these are initilization etc iterations
