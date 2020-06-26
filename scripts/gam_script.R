@@ -131,10 +131,24 @@ M <- lm(Temp ~ Gas * Insul, data = insul_df)
 eyefix_df_avg %<>% mutate(Object = factor(Object))
 M_interaction <- gam(mean_fix ~ Object + s(Time, by =Object), data = eyefix_df_avg)
 # or
-M <- gam(mean_fix ~ s(Time, Object, bs = 'fs'), data = eyefix_df_avg)
+M_interaction2 <- gam(mean_fix ~ s(Time, Object, bs = 'fs'), data = eyefix_df_avg)
+
+M_additive <- gam(mean_fix ~ Object + s(Time), data = eyefix_df_avg)
 
 eyefix_df_avg %>% 
-  add_predictions(M) %>% 
+  add_predictions(M_interaction) %>% 
+  ggplot(aes(x = Time, group = Object, colour = Object)) +
+  geom_point(aes(y = mean_fix), size = 0.5, alpha = 0.5) +
+  geom_line(aes(y = pred))
+
+eyefix_df_avg %>% 
+  add_predictions(M_additive) %>% 
+  ggplot(aes(x = Time, group = Object, colour = Object)) +
+  geom_point(aes(y = mean_fix), size = 0.5, alpha = 0.5) +
+  geom_line(aes(y = pred))
+
+eyefix_df_avg %>% 
+  add_predictions(M_interaction2) %>% 
   ggplot(aes(x = Time, group = Object, colour = Object)) +
   geom_point(aes(y = mean_fix), size = 0.5, alpha = 0.5) +
   geom_line(aes(y = pred))
